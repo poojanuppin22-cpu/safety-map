@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Safety Map</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+    <style>
+        body { margin:0; }
+        #map { height:100vh; }
+    </style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+let map = L.map('map').setView([12.8000, 77.5770], 14);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
+.addTo(map);
+
+// predefined unsafe reasons (you can expand)
+let unsafeData = [
+    {
+        road: "Bannerghatta Road",
+        reason: "High theft incidents reported at night"
+    },
+    {
+        road: "Begur Road",
+        reason: "Poor street lighting and isolated area"
+    }
+];
+
+// function to get road name
+async function getRoadName(lat, lng){
+    let url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+
+    let res = await fetch(url);
+    let data = await res.json();
+
+    return data.address.road || "Unknown Road";
+}
+
+// map click
+map.on('click', async function(e){
+
+    let lat = e.latlng.lat;
+    let lng = e.latlng.lng;
+
+    let roadName = await getRoadName(lat, lng);
+
+    let status = "SAFE";
+    let reason = "No major incidents reported";
+
+    unsafeData.forEach(item => {
+        if(roadName.includes(item.road)){
+            status = "UNSAFE";
+            reason = item.reason;
+        }
+    });
+
+    let popupText = `
+        <b>📍 Road:</b> ${roadName} <br>
+        <b>Status:</b> ${status} <br>
+        <b>Reason:</b> ${reason}
+    `;
+
+    L.popup()
+    .setLatLng([lat, lng])
+    .setContent(popupText)
+    .openOn(map);
+});
+</script>
+
+</body>
+</html>
